@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unhack</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    input, #passwordLength {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #007BFF;
+      color: #fff;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+      width: 80%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Sign into [Unknown] with Unhack</h1>
+
+  <input type="text" id="siteInput" placeholder="Paste site URL here..." readonly>
+  <button id="pasteUrl">Paste URL from Clipboard</button>
+
+  <div class="slider-container">
+    <label for="passwordLength">Length:</label>
+    <input type="range" id="passwordLength" min="1" max="20000" value="500">
+    <span id="lengthDisplay">500</span>
+  </div>
+
+  <button id="signup">Sign Up</button>
+  <button id="signin">Sign in</button>
+  <button id="unsign">Unsign From Here</button>
+
+  <script>
+    let refDomain = "Unknown";
+
+    // Function to extract the hostname from a URL
+    function extractHostname(url) {
+      try {
+        return new URL(url).hostname;
+      } catch (e) {
+        return "Invalid URL";
+      }
+    }
+
+    // Function to get clipboard data
+    async function getClipboardText() {
+      try {
+        const text = await navigator.clipboard.readText();
+        const hostname = extractHostname(text);
+        if (hostname !== "Invalid URL") {
+          refDomain = hostname;
+          document.getElementById('title').innerText = "Sign into " + refDomain + " with Unhack";
+          document.getElementById('siteInput').value = text;
+        } else {
+          alert("Invalid URL. Please copy the full website address first.");
+        }
+      } catch (err) {
+        alert("Failed to read clipboard. Allow clipboard access in your browser settings.");
+      }
+    }
+
+    document.getElementById('pasteUrl').addEventListener('click', getClipboardText);
+
+    // Define allowed characters for generating the password.
+    const allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+[]{}|;:,.<>?/~`-=";
+
+    // Function to generate a secure random password with user-defined length.
+    function generatePassword(length) {
+      let password = "";
+      const array = new Uint32Array(length);
+      window.crypto.getRandomValues(array);
+      for (let i = 0; i < length; i++) {
+        password += allowedChars[array[i] % allowedChars.length];
+      }
+      return password;
+    }
+
+    // Update the password length display when the slider is changed.
+    const passwordSlider = document.getElementById("passwordLength");
+    const lengthDisplay = document.getElementById("lengthDisplay");
+    passwordSlider.addEventListener("input", function() {
+      lengthDisplay.textContent = passwordSlider.value;
+    });
+
+    // Handle the "Sign Up" button click.
+    document.getElementById('signup').addEventListener('click', function() {
+      if (refDomain === "Unknown") {
+        alert("Paste the website URL first!");
+        return;
+      }
+      const length = parseInt(passwordSlider.value, 10);
+      const password = generatePassword(length);
+      localStorage.setItem("unhack_password_" + refDomain, password);
+      alert("Secure password (" + length + " characters) generated and saved for " + refDomain);
+    });
+
+    // Handle the "Sign in" button click.
+    document.getElementById('signin').addEventListener('click', function() {
+      if (refDomain === "Unknown") {
+        alert("Paste the website URL first!");
+        return;
+      }
+      const storageKey = "unhack_password_" + refDomain;
+      const password = localStorage.getItem(storageKey);
+      if (password) {
+        navigator.clipboard.writeText(password).then(function() {
+          alert("Password copied to clipboard!");
+          setTimeout(function() {
+            window.close();
+          }, 500);
+        }).catch(function(err) {
+          alert("Failed to copy password: " + err);
+        });
+      } else {
+        alert("No password found for " + refDomain + ". Please sign up first.");
+      }
+    });
+
+    // Handle the "Unsign From Here" button click.
+    document.getElementById('unsign').addEventListener('click', function() {
+      if (refDomain === "Unknown") {
+        alert("Paste the website URL first!");
+        return;
+      }
+      localStorage.removeItem("unhack_password_" + refDomain);
+      alert("Password removed for " + refDomain);
+    });
+  </script>
+</body>
+</html>
